@@ -2,7 +2,7 @@ package util
 
 import (
 	"fmt"
-	"math"
+	"strings"
 
 	"github.com/miekg/dns"
 )
@@ -17,6 +17,14 @@ func GetQuestion(m *dns.Msg) (*dns.Question, error) {
 		return nil, fmt.Errorf("question number:%d is illegal", len(m.Question))
 	}
 	return &m.Question[0], nil
+}
+
+func GetHost(m *dns.Msg) (string, error) {
+	q, err := GetQuestion(m)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimRight(q.Name, "."), nil
 }
 
 // Get the unique key of a dns question
@@ -108,11 +116,11 @@ func RewriteMsgTTL(msg *dns.Msg, ttl uint32) *dns.Msg {
 	return msg
 }
 
-// get the min ttl in answer
+// get the max ttl in answer
 func GetAnswerTTL(msg *dns.Msg) uint32 {
-	ttl := uint32(math.MaxUint32)
+	ttl := uint32(0)
 	for _, rr := range msg.Answer {
-		if rr.Header().Ttl < ttl {
+		if rr.Header().Ttl > ttl {
 			ttl = rr.Header().Ttl
 		}
 	}

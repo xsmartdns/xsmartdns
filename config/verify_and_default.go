@@ -85,13 +85,13 @@ func (c *Group) FillDefault() {
 	}
 	if c.CacheConfig == nil {
 		c.CacheConfig = &CacheConfig{}
-		c.CacheConfig.FillDefault()
 	}
+	c.CacheConfig.FillDefault()
 	if len(c.SpeedChecks) == 0 {
 		c.SpeedChecks = append(c.SpeedChecks,
 			&SpeedCheckConfig{SpeedCheckType: PING_SPEED_CHECK_TYPE},
-			&SpeedCheckConfig{SpeedCheckType: TCP_SPEED_CHECK_TYPE, Port: 80},
-			&SpeedCheckConfig{SpeedCheckType: TCP_SPEED_CHECK_TYPE, Port: 443},
+			&SpeedCheckConfig{SpeedCheckType: HTTP_SPEED_CHECK_TYPE, Port: 80},
+			&SpeedCheckConfig{SpeedCheckType: HTTP_SPEED_CHECK_TYPE, Port: 443},
 			// &SpeedCheckConfig{SpeedCheckType: UDP_SPEED_CHECK_TYPE, Port: 443},
 		)
 	}
@@ -125,7 +125,7 @@ func (c *Group) Verify() error {
 func (c *SpeedCheckConfig) Verify() error {
 	switch c.SpeedCheckType {
 	case PING_SPEED_CHECK_TYPE:
-	case TCP_SPEED_CHECK_TYPE:
+	case HTTP_SPEED_CHECK_TYPE:
 		if c.Port == 0 {
 			return fmt.Errorf("port is empty")
 		}
@@ -181,12 +181,24 @@ func (c *CacheConfig) FillDefault() {
 		c.CacheSize = &tmp
 	}
 	if c.PrefetchDomain == nil {
-		tmp := true
+		tmp := false
 		c.PrefetchDomain = &tmp
 	}
 	if c.CacheExpired == nil {
 		tmp := true
 		c.CacheExpired = &tmp
+	}
+	if c.CacheExpiredTimeout == nil {
+		tmp := int64(0)
+		c.CacheExpiredTimeout = &tmp
+	}
+	if c.CacheExpiredReplyTtl == nil {
+		tmp := int64(5)
+		c.CacheExpiredReplyTtl = &tmp
+	}
+	if c.CacheExpiredPrefetchTimeSecond == nil {
+		tmp := int64(28800)
+		c.CacheExpiredPrefetchTimeSecond = &tmp
 	}
 }
 

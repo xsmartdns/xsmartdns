@@ -46,9 +46,17 @@ type SpeedCheckConfig struct {
 }
 
 type CacheConfig struct {
-	CacheSize      *int32 `json:"cacheSize"`
-	PrefetchDomain *bool  `json:"prefetchDomain"`
-	CacheExpired   *bool  `json:"cacheExpired"`
+	CacheSize *int32 `json:"cacheSize"`
+	// domain prefetch feature default false
+	PrefetchDomain *bool `json:"prefetchDomain"`
+	// cache expired feature, default true
+	CacheExpired *bool `json:"cacheExpired"`
+	// Cache expired timeout , default 0 no timeout
+	CacheExpiredTimeout *int64 `json:"cacheExpiredTimeout"`
+	// TTL value to use when replying with expired data, default 5
+	CacheExpiredReplyTtl *int64 `json:"cacheExpiredReplyTtl"`
+	// Prefetch time when serve expired, default 28800
+	CacheExpiredPrefetchTimeSecond *int64 `json:"cacheExpiredPrefetchTimeSecond"`
 }
 
 type Outbound struct {

@@ -38,6 +38,7 @@ const (
 
 const (
 	PING_SPEED_CHECK_TYPE SpeedCheckType = "ping"
+	HTTP_SPEED_CHECK_TYPE SpeedCheckType = "http"
 	TCP_SPEED_CHECK_TYPE  SpeedCheckType = "tcp"
 	// At present, there are not many HTTP3, but it will be implemented in the future.
 	// UDP_SPEED_CHECK_TYPE  SpeedCheckType = "udp"

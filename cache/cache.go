@@ -12,7 +12,7 @@ import (
 )
 
 type DnsQueryCache struct {
-	sync.RWMutex
+	sync.Mutex
 	cfg          *config.CacheConfig
 	cache        *lru.Cache[string, *CacheEntry]
 	updateinvoke *updateinvoke.UpdateInvoker
@@ -39,6 +39,8 @@ func (c *DnsQueryCache) FindCacheResp(r *dns.Msg) *dns.Msg {
 		return nil
 	}
 
+	c.Lock()
+	defer c.Unlock()
 	if !c.cache.Contains(key) {
 		return nil
 	}
@@ -46,12 +48,21 @@ func (c *DnsQueryCache) FindCacheResp(r *dns.Msg) *dns.Msg {
 	if !ok {
 		return nil
 	}
-	return value.getResp()
+	resp := value.getResp()
+	if resp == nil {
+		c.cache.Remove(key)
+	}
+	return resp
 }
 
 func (c *DnsQueryCache) StoreCache(r, resp *dns.Msg) {
 	key, err := getKey(r)
 	if err != nil {
+		return
+	}
+	c.Lock()
+	defer c.Unlock()
+	if c.cache.Contains(key) {
 		return
 	}
 	c.cache.Add(key, newCacheEntry(r.Copy(), resp.Copy(), c.updateinvoke, c.cfg))

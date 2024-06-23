@@ -2,9 +2,13 @@ package speedcheck
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -83,6 +87,8 @@ func speedCheckSyncOne(ctx context.Context, rr dns.RR, cfg *config.SpeedCheckCon
 	switch cfg.SpeedCheckType {
 	case config.PING_SPEED_CHECK_TYPE:
 		return ping(ctx, ip)
+	case config.HTTP_SPEED_CHECK_TYPE:
+		return httping(ctx, ip+":"+strconv.FormatInt(cfg.Port, 10))
 	case config.TCP_SPEED_CHECK_TYPE:
 		return tcping(ctx, ip+":"+strconv.FormatInt(cfg.Port, 10))
 	}
@@ -119,7 +125,10 @@ func tcping(ctx context.Context, address string) (rtMs int64, err error) {
 
 	// start time
 	start := time.Now()
-	dialer := net.Dialer{}
+	dialer := net.Dialer{
+		Timeout:   PING_TIMEOUT,
+		KeepAlive: -1 * time.Second,
+	}
 
 	conn, err := dialer.DialContext(ctx, "tcp", address)
 	if err != nil {
@@ -128,6 +137,47 @@ func tcping(ctx context.Context, address string) (rtMs int64, err error) {
 	defer conn.Close()
 
 	// cost time
+	elapsed := time.Since(start)
+
+	return elapsed.Milliseconds(), nil
+}
+
+func httping(ctx context.Context, address string) (rtMs int64, err error) {
+	ctx, cancel := context.WithTimeout(ctx, PING_TIMEOUT)
+	defer cancel()
+
+	dialer := &net.Dialer{
+		Timeout:   PING_TIMEOUT,
+		KeepAlive: -1 * time.Second,
+	}
+	client := http.Client{
+		Transport: &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			DialContext:           dialer.DialContext,
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          1,
+			IdleConnTimeout:       PING_TIMEOUT,
+			TLSHandshakeTimeout:   PING_TIMEOUT,
+			ExpectContinueTimeout: 1 * time.Second,
+			TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
+		},
+		Timeout: PING_TIMEOUT,
+	}
+
+	// start time
+	start := time.Now()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+address, nil)
+	if err != nil {
+		return 0, fmt.Errorf("httping create request:%s error:%v", address, err)
+	}
+	// req.Host = host
+	resp, err := client.Do(req)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return 0, fmt.Errorf("httping connection:%s error:%v", address, err)
+	}
+	if resp != nil {
+		resp.Body.Close()
+	}
 	elapsed := time.Since(start)
 
 	return elapsed.Milliseconds(), nil

@@ -21,8 +21,7 @@ type httpsOutbound struct {
 
 func NewHttpsOutbound(cfg *config.HttpsSetting) Outbound {
 	dialer := &net.Dialer{
-		Timeout:   5 * time.Second,
-		KeepAlive: 5 * time.Second,
+		Timeout: 5 * time.Second,
 	}
 	return &httpsOutbound{
 		cfg: cfg,
@@ -36,6 +35,7 @@ func NewHttpsOutbound(cfg *config.HttpsSetting) Outbound {
 				TLSHandshakeTimeout:   5 * time.Second,
 				ExpectContinueTimeout: 1 * time.Second,
 			},
+			Timeout: 5 * time.Second,
 		},
 		upstreamAddr: cfg.Addr,
 	}

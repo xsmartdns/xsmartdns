@@ -5,7 +5,6 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/xsmartdns/xsmartdns/cache"
-	"github.com/xsmartdns/xsmartdns/cache/updateinvoke"
 	"github.com/xsmartdns/xsmartdns/chain"
 	"github.com/xsmartdns/xsmartdns/config"
 	"github.com/xsmartdns/xsmartdns/util"
@@ -14,8 +13,7 @@ import (
 type cacheChain struct {
 	cfg *config.Group
 
-	cache        *cache.DnsQueryCache
-	updateinvoke *updateinvoke.UpdateInvoker
+	cache *cache.DnsQueryCache
 }
 
 func NewCacheChain(cfg *config.Group) chain.Chain {
@@ -39,7 +37,7 @@ func (c *cacheChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvoke) (*d
 	if err != nil {
 		return nil, err
 	}
-	util.RewriteMsgTTL(resp, 3)
 	c.cache.StoreCache(r, resp)
+	util.RewriteMsgTTL(resp, 3)
 	return resp, nil
 }
