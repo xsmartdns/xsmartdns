@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	MIN_UPDATE_DELAY = 3 * time.Second
+	MIN_UPDATE_DELAY = 30 * time.Second
 )
 
 type CacheEntry struct {
@@ -83,7 +83,7 @@ func (e *CacheEntry) getResp() *dns.Msg {
 	if nowTtl < 0 {
 		nowTtl = 0
 	}
-	if *e.cfg.CacheExpiredTimeout > 0 && e.vistiedExpired() {
+	if e.vistiedExpired() {
 		return nil
 	}
 	if e.ttlExpired() {
@@ -108,6 +108,9 @@ func (e *CacheEntry) ttlExpired() bool {
 }
 
 func (e *CacheEntry) vistiedExpired() bool {
+	if *e.cfg.CacheExpiredTimeout <= 0 {
+		return false
+	}
 	e.RLock()
 	vistiedTimeSecond := e.vistiedTimeSecond
 	e.RUnlock()

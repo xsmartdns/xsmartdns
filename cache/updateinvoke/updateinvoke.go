@@ -10,6 +10,7 @@ import (
 
 type UpdateInvoker struct {
 	handleInvoke chain.HandleInvoke
+	chains       []chain.Chain
 }
 
 func NewUpdateInvoker(cfg *config.Group) (*UpdateInvoker, error) {
@@ -24,7 +25,7 @@ func NewUpdateInvoker(cfg *config.Group) (*UpdateInvoker, error) {
 	// force use fastest-ip in cache async update
 	cfg.CacheMissResponseMode = config.FASTEST_IP_RESPONSEMODE
 
-	handleInvoke := chain.BuildChain(
+	handleInvoke, chains := chain.BuildChain(
 		chains.NewSpeedSortChain(cfg),
 		chains.NewRemoveruplicateChain(cfg),
 		chains.NewResloveCnameChain(cfg),
@@ -32,9 +33,15 @@ func NewUpdateInvoker(cfg *config.Group) (*UpdateInvoker, error) {
 		chains.NewInvokeOutboundChain(cfg),
 	)
 
-	return &UpdateInvoker{handleInvoke: handleInvoke}, nil
+	return &UpdateInvoker{handleInvoke: handleInvoke, chains: chains}, nil
 }
 
 func (i *UpdateInvoker) Invoke(r *dns.Msg) (*dns.Msg, error) {
 	return i.handleInvoke(r)
+}
+
+func (i *UpdateInvoker) Shutdown() {
+	for _, c := range i.chains {
+		c.Shutdown()
+	}
 }

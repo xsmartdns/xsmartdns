@@ -2,6 +2,7 @@ package cache
 
 import (
 	"sync"
+	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/miekg/dns"
@@ -11,15 +12,20 @@ import (
 	"github.com/xsmartdns/xsmartdns/util"
 )
 
+const (
+	CLEAR_EXPIRED_CACHE_INTERVAL = 30 * time.Minute
+)
+
 type DnsQueryCache struct {
-	sync.Mutex
+	sync.RWMutex
 	cfg          *config.CacheConfig
+	checkTimer   *time.Ticker
 	cache        *lru.Cache[string, *CacheEntry]
 	updateinvoke *updateinvoke.UpdateInvoker
 }
 
 func NewDnsQueryCache(cfg *config.Group) (*DnsQueryCache, error) {
-	dc := &DnsQueryCache{cfg: cfg.CacheConfig}
+	dc := &DnsQueryCache{cfg: cfg.CacheConfig, checkTimer: time.NewTicker(CLEAR_EXPIRED_CACHE_INTERVAL)}
 	c, err := lru.NewWithEvict(int(*cfg.CacheConfig.CacheSize), dc.onEvicted)
 	if err != nil {
 		return nil, err
@@ -30,6 +36,7 @@ func NewDnsQueryCache(cfg *config.Group) (*DnsQueryCache, error) {
 		return nil, err
 	}
 	dc.updateinvoke = updateinvoke
+	go dc.checkExpiredCacheLoop()
 	return dc, nil
 }
 
@@ -66,6 +73,38 @@ func (c *DnsQueryCache) StoreCache(r, resp *dns.Msg) {
 		return
 	}
 	c.cache.Add(key, newCacheEntry(r.Copy(), resp.Copy(), c.updateinvoke, c.cfg))
+}
+
+func (c *DnsQueryCache) Shutdown() {
+	c.updateinvoke.Shutdown()
+	c.checkTimer.Stop()
+}
+
+func (c *DnsQueryCache) checkExpiredCacheLoop() {
+	for range c.checkTimer.C {
+		c.clearExpiredCache()
+	}
+}
+
+func (c *DnsQueryCache) clearExpiredCache() {
+	// quick path
+	c.RLock()
+	_, value, ok := c.cache.GetOldest()
+	if !ok || !value.vistiedExpired() {
+		c.RUnlock()
+		return
+	}
+	c.RUnlock()
+	// slow path
+	c.Lock()
+	defer c.Unlock()
+	for {
+		key, value, ok := c.cache.GetOldest()
+		if !ok || !value.vistiedExpired() {
+			break
+		}
+		c.cache.Remove(key)
+	}
 }
 
 func (c *DnsQueryCache) onEvicted(key string, value *CacheEntry) {

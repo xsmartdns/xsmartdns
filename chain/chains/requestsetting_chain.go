@@ -17,3 +17,6 @@ func (c *requestSettingChain) HandleRequest(r *dns.Msg, nextChain chain.HandleIn
 	r.RecursionDesired = true
 	return nextChain(r)
 }
+
+func (c *requestSettingChain) Shutdown() {
+}

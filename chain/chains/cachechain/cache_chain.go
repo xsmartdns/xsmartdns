@@ -41,3 +41,7 @@ func (c *cacheChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvoke) (*d
 	util.RewriteMsgTTL(resp, 3)
 	return resp, nil
 }
+
+func (c *cacheChain) Shutdown() {
+	c.cache.Shutdown()
+}

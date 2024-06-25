@@ -24,6 +24,12 @@ func NewGroupRouter(cfg *config.Config) Router {
 	return &groupRouter{cfg: cfg, groupMap: groupMap, defaultGroup: cfg.Groups[0]}
 }
 
+func (router *groupRouter) Shutdown() {
+	for _, g := range router.groupMap {
+		g.Shutdown()
+	}
+}
+
 func (router *groupRouter) FindGroupInvoker(r *dns.Msg) (group.GroupInvoker, error) {
 	groupCfg := router.findGroupCfg(r)
 	g := router.groupMap[groupCfg.Tag]

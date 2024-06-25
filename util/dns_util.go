@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/miekg/dns"
@@ -118,9 +119,9 @@ func RewriteMsgTTL(msg *dns.Msg, ttl uint32) *dns.Msg {
 
 // get the max ttl in answer
 func GetAnswerTTL(msg *dns.Msg) uint32 {
-	ttl := uint32(0)
+	ttl := uint32(math.MaxUint32)
 	for _, rr := range msg.Answer {
-		if rr.Header().Ttl > ttl {
+		if rr.Header().Ttl < ttl {
 			ttl = rr.Header().Ttl
 		}
 	}

@@ -13,6 +13,11 @@ import (
 	"github.com/xsmartdns/xsmartdns/util/speedcheck"
 )
 
+const (
+	SLOW_LATENCY_PERCENT_THRESHOLD = 0.2
+	MIN_SLOW_LATENCY_MILL          = 5
+)
+
 type speedSortChain struct {
 	cfg *config.Group
 }
@@ -42,13 +47,23 @@ func (c *speedSortChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvoke)
 	sort.Slice(resaults, func(i, j int) bool {
 		return resaults[i].rtMs < resaults[j].rtMs
 	})
-	// TODO: 过滤掉耗时过大的ip
+	minRtMs := resaults[0].rtMs
+	ipRRs = make([]dns.RR, 0, len(ipRRs))
 	for i := 0; i < len(resaults); i++ {
-		ipRRs[i] = resaults[i].rr
+		ret := resaults[i]
+		rtRise := ret.rtMs - minRtMs
+		// ip too slow
+		if i > 0 && rtRise > MIN_SLOW_LATENCY_MILL && float64(rtRise)/float64(minRtMs) > float64(SLOW_LATENCY_PERCENT_THRESHOLD) {
+			continue
+		}
+		ipRRs = append(ipRRs, ret.rr)
 	}
 
 	resp.Answer = append(ipRRs, other...)
 	return resp, nil
+}
+
+func (c *speedSortChain) Shutdown() {
 }
 
 func (c *speedSortChain) speedCheck(ipRRs []dns.RR, onlyfirstResponse bool) []*sppedTestResault {

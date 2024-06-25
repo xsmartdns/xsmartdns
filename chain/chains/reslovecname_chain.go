@@ -27,3 +27,6 @@ func (c *resloveCnameChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvo
 	}
 	return resp, nil
 }
+
+func (c *resloveCnameChain) Shutdown() {
+}

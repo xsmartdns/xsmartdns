@@ -12,10 +12,11 @@ import (
 // one dns request will invoke all outbound in the group
 type fastlyGroupInvoker struct {
 	handleInvoke chain.HandleInvoke
+	chains       []chain.Chain
 }
 
 func NewFastlyGroupInvoker(cfg *config.Group) GroupInvoker {
-	handleInvoke := chain.BuildChain(
+	handleInvoke, chains := chain.BuildChain(
 		cachechain.NewCacheChain(cfg),
 		chains.NewSpeedSortChain(cfg),
 		chains.NewRemoveruplicateChain(cfg),
@@ -23,9 +24,15 @@ func NewFastlyGroupInvoker(cfg *config.Group) GroupInvoker {
 		chains.NewRequestSettingChain(),
 		chains.NewInvokeOutboundChain(cfg),
 	)
-	return &fastlyGroupInvoker{handleInvoke: handleInvoke}
+	return &fastlyGroupInvoker{handleInvoke: handleInvoke, chains: chains}
 }
 
 func (p *fastlyGroupInvoker) Invoke(r *dns.Msg) (*dns.Msg, error) {
 	return p.handleInvoke(r)
+}
+
+func (p *fastlyGroupInvoker) Shutdown() {
+	for _, c := range p.chains {
+		c.Shutdown()
+	}
 }

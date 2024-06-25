@@ -82,6 +82,9 @@ func (c *invokeOutboundChain) HandleRequest(r *dns.Msg, nextChain chain.HandleIn
 	}
 }
 
+func (c *invokeOutboundChain) Shutdown() {
+}
+
 type invokeResp struct {
 	outboundIdx int
 	resp        *dns.Msg

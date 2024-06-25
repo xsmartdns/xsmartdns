@@ -34,6 +34,7 @@ func (srv *dnsServer) Start() error {
 
 func (srv *dnsServer) Shutdown() error {
 	log.Infof("Shutdown %s server on %s", srv.cfg.Net, srv.cfg.Listen)
+	srv.router.Shutdown()
 	return srv.dnsServer.Shutdown()
 }
 

@@ -28,3 +28,6 @@ func (c *removeruplicateChain) HandleRequest(r *dns.Msg, nextChain chain.HandleI
 	resp.Extra = util.RemoveDuplicateRR(resp.Extra)
 	return resp, nil
 }
+
+func (c *removeruplicateChain) Shutdown() {
+}

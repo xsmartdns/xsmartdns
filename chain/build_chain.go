@@ -4,11 +4,11 @@ import (
 	"github.com/miekg/dns"
 )
 
-func BuildChain(chains ...Chain) HandleInvoke {
+func BuildChain(chains ...Chain) (HandleInvoke, []Chain) {
 	if len(chains) == 0 {
 		return func(r *dns.Msg) (*dns.Msg, error) {
 			return r, nil
-		}
+		}, chains
 	}
 
 	var next HandleInvoke = func(r *dns.Msg) (*dns.Msg, error) {
@@ -23,5 +23,5 @@ func BuildChain(chains ...Chain) HandleInvoke {
 		}
 	}
 
-	return next
+	return next, chains
 }

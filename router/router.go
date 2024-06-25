@@ -8,4 +8,5 @@ import (
 // Router used to match and find group
 type Router interface {
 	FindGroupInvoker(*dns.Msg) (group.GroupInvoker, error)
+	Shutdown()
 }
