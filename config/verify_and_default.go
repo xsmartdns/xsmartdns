@@ -194,6 +194,9 @@ func (c *CacheConfig) FillDefault() {
 	}
 	if c.CacheExpiredReplyTtl == nil {
 		tmp := int64(5)
+		if *c.PrefetchDomain {
+			tmp = 15
+		}
 		c.CacheExpiredReplyTtl = &tmp
 	}
 	if c.CacheExpiredPrefetchTimeSecond == nil {

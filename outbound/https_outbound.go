@@ -11,6 +11,7 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/xsmartdns/xsmartdns/config"
+	"github.com/xsmartdns/xsmartdns/model"
 )
 
 type httpsOutbound struct {
@@ -41,7 +42,7 @@ func NewHttpsOutbound(cfg *config.HttpsSetting) Outbound {
 	}
 }
 
-func (o *httpsOutbound) Invoke(r *dns.Msg) (*dns.Msg, error) {
+func (o *httpsOutbound) Invoke(r *model.Message) (*dns.Msg, error) {
 	msgBytes, err := r.Pack()
 	if err != nil {
 		log.Fatalf("Failed to pack DNS message: %v", err)

@@ -1,7 +1,10 @@
 package outbound
 
-import "github.com/miekg/dns"
+import (
+	"github.com/miekg/dns"
+	"github.com/xsmartdns/xsmartdns/model"
+)
 
 type Outbound interface {
-	Invoke(r *dns.Msg) (*dns.Msg, error)
+	Invoke(r *model.Message) (*dns.Msg, error)
 }

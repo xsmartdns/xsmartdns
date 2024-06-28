@@ -53,7 +53,7 @@ type CacheConfig struct {
 	CacheExpired *bool `json:"cacheExpired"`
 	// Cache expired timeout , default 0 no timeout
 	CacheExpiredTimeout *int64 `json:"cacheExpiredTimeout"`
-	// TTL value to use when replying with expired data, default 5
+	// TTL value to use when replying with expired data, default 5(15 when prefetchDomain enabled)
 	CacheExpiredReplyTtl *int64 `json:"cacheExpiredReplyTtl"`
 	// Prefetch time when serve expired, default 28800
 	CacheExpiredPrefetchTimeSecond *int64 `json:"cacheExpiredPrefetchTimeSecond"`

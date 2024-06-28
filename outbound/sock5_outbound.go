@@ -5,6 +5,7 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/xsmartdns/xsmartdns/config"
+	"github.com/xsmartdns/xsmartdns/model"
 )
 
 type sock5Outbound struct {
@@ -15,7 +16,7 @@ func NewSock5Outbound(cfg *config.Sock5Setting) Outbound {
 	return &sock5Outbound{upstreamAddr: cfg.Addr}
 }
 
-func (o *sock5Outbound) Invoke(r *dns.Msg) (*dns.Msg, error) {
+func (o *sock5Outbound) Invoke(r *model.Message) (*dns.Msg, error) {
 	// TODO: sock5，需要移动到 transport 模型？否则无法让递归解析生效
 	return nil, fmt.Errorf("not support")
 }

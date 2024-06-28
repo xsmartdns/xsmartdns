@@ -5,6 +5,7 @@ import (
 	"github.com/xsmartdns/xsmartdns/chain"
 	"github.com/xsmartdns/xsmartdns/chain/chains"
 	"github.com/xsmartdns/xsmartdns/config"
+	"github.com/xsmartdns/xsmartdns/model"
 	"github.com/xsmartdns/xsmartdns/util"
 )
 
@@ -36,7 +37,7 @@ func NewUpdateInvoker(cfg *config.Group) (*UpdateInvoker, error) {
 	return &UpdateInvoker{handleInvoke: handleInvoke, chains: chains}, nil
 }
 
-func (i *UpdateInvoker) Invoke(r *dns.Msg) (*dns.Msg, error) {
+func (i *UpdateInvoker) Invoke(r *model.Message) (*dns.Msg, error) {
 	return i.handleInvoke(r)
 }
 

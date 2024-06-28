@@ -9,6 +9,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/xsmartdns/xsmartdns/chain"
 	"github.com/xsmartdns/xsmartdns/config"
+	"github.com/xsmartdns/xsmartdns/model"
 	"github.com/xsmartdns/xsmartdns/util"
 	"github.com/xsmartdns/xsmartdns/util/speedcheck"
 )
@@ -26,7 +27,7 @@ func NewSpeedSortChain(cfg *config.Group) chain.Chain {
 	return &speedSortChain{cfg: cfg}
 }
 
-func (c *speedSortChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvoke) (*dns.Msg, error) {
+func (c *speedSortChain) HandleRequest(r *model.Message, nextChain chain.HandleInvoke) (*dns.Msg, error) {
 	// FASTEST_RESPONSE_RESPONSEMODE not should speedtest
 	if c.cfg.CacheMissResponseMode == config.FASTEST_RESPONSE_RESPONSEMODE {
 		return nextChain(r)
@@ -42,7 +43,7 @@ func (c *speedSortChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvoke)
 	}
 
 	// speed check
-	resaults := c.speedCheck(ipRRs, c.cfg.CacheMissResponseMode == config.FIRST_PING_RESPONSEMODE)
+	resaults := c.speedCheck(r, ipRRs, c.cfg.CacheMissResponseMode == config.FIRST_PING_RESPONSEMODE)
 	// sort rr by rt
 	sort.Slice(resaults, func(i, j int) bool {
 		return resaults[i].rtMs < resaults[j].rtMs
@@ -66,7 +67,7 @@ func (c *speedSortChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvoke)
 func (c *speedSortChain) Shutdown() {
 }
 
-func (c *speedSortChain) speedCheck(ipRRs []dns.RR, onlyfirstResponse bool) []*sppedTestResault {
+func (c *speedSortChain) speedCheck(msg *model.Message, ipRRs []dns.RR, onlyfirstResponse bool) []*sppedTestResault {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	wg := sync.WaitGroup{}
@@ -75,7 +76,7 @@ func (c *speedSortChain) speedCheck(ipRRs []dns.RR, onlyfirstResponse bool) []*s
 		wg.Add(1)
 		go func(rr dns.RR) {
 			defer wg.Done()
-			rtMs := speedcheck.SpeedCheckSync(ctx, rr, c.cfg.SpeedChecks)
+			rtMs := speedcheck.SpeedCheckSync(ctx, msg, rr, c.cfg)
 			ch <- &sppedTestResault{
 				rr:   rr,
 				rtMs: rtMs,

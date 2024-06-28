@@ -11,26 +11,30 @@ import (
 	"github.com/xsmartdns/xsmartdns/cache/updateinvoke"
 	"github.com/xsmartdns/xsmartdns/config"
 	"github.com/xsmartdns/xsmartdns/log"
+	"github.com/xsmartdns/xsmartdns/model"
 	"github.com/xsmartdns/xsmartdns/util"
 	"github.com/xsmartdns/xsmartdns/util/timeutil"
 )
 
 const (
-	MIN_UPDATE_DELAY = 30 * time.Second
+	MIN_UPDATE_DELAY_SECOND = 15
+	MIN_UPDATE_DELAY        = MIN_UPDATE_DELAY_SECOND * time.Second
+
+	CACHE_SPEED_CHECK_TIMES = 10
 )
 
 type CacheEntry struct {
 	// no update
-	cfg          *config.CacheConfig
-	updateinvoke *updateinvoke.UpdateInvoker
-	request      *dns.Msg
-	host         string
+	cfg             *config.CacheConfig
+	storeTimeSecond int64
+	updateinvoke    *updateinvoke.UpdateInvoker
+	request         *dns.Msg
+	host            string
 
 	// update by RWMutex
 	sync.RWMutex
 	resp             *dns.Msg
 	ttl              uint32
-	storeTimeSecond  int64
 	updateTimeSecond int64
 	ti               *time.Timer
 
@@ -42,15 +46,16 @@ type CacheEntry struct {
 
 func newCacheEntry(request, resp *dns.Msg, updateinvoke *updateinvoke.UpdateInvoker, cfg *config.CacheConfig) *CacheEntry {
 	host, _ := util.GetHost(resp)
+	now := timeutil.NowSecond()
 	e := &CacheEntry{
 		cfg:               cfg,
 		request:           request,
 		host:              host,
 		resp:              resp.Copy(),
 		ttl:               util.GetAnswerTTL(resp),
-		storeTimeSecond:   timeutil.NowSecond(),
-		updateTimeSecond:  timeutil.NowSecond(),
-		vistiedTimeSecond: timeutil.NowSecond(),
+		storeTimeSecond:   now,
+		updateTimeSecond:  now,
+		vistiedTimeSecond: now,
 		updateinvoke:      updateinvoke,
 	}
 	if *cfg.PrefetchDomain {
@@ -58,7 +63,7 @@ func newCacheEntry(request, resp *dns.Msg, updateinvoke *updateinvoke.UpdateInvo
 			e.RLock()
 			ttl := e.ttl
 			e.RUnlock()
-			afterUpdateTime := (time.Duration(ttl) - 5) * time.Second
+			afterUpdateTime := (time.Duration(ttl) - MIN_UPDATE_DELAY_SECOND) * time.Second
 			return afterUpdateTime
 		})
 	} else if *cfg.CacheExpired {
@@ -80,8 +85,8 @@ func (e *CacheEntry) getResp() *dns.Msg {
 	atomic.StoreInt64(&e.vistiedTimeSecond, timeutil.NowSecond())
 	// rewrite ttl
 	nowTtl := int64(ttl) - (timeutil.NowSecond() - updateTimeSecond)
-	if nowTtl < 0 {
-		nowTtl = 0
+	if nowTtl < MIN_UPDATE_DELAY_SECOND {
+		nowTtl = MIN_UPDATE_DELAY_SECOND
 	}
 	if e.vistiedExpired() {
 		return nil
@@ -137,10 +142,7 @@ func (e *CacheEntry) startUpdate(getAfterTime func() time.Duration) {
 	}
 
 	// next update
-	afterUpdateTime := getAfterTime()
-	if afterUpdateTime < MIN_UPDATE_DELAY {
-		afterUpdateTime = MIN_UPDATE_DELAY
-	}
+	afterUpdateTime := util.Max(getAfterTime(), MIN_UPDATE_DELAY)
 	if log.IsLevelEnabled(logrus.DebugLevel) {
 		log.Debuf("[%s]next update after:%s", e.host, afterUpdateTime)
 	}
@@ -164,7 +166,12 @@ func (e *CacheEntry) updateResp() error {
 	}
 	defer atomic.StoreInt32(&e.updating, 0)
 
-	resp, err := e.updateinvoke.Invoke(e.request)
+	req := model.WrapDnsMsg(e.request)
+	// not first update
+	if e.storeTimeSecond != e.updateTimeSecond {
+		req.InvokeConfig.SpeedCheckTimes = CACHE_SPEED_CHECK_TIMES
+	}
+	resp, err := e.updateinvoke.Invoke(req)
 	if err != nil {
 		return fmt.Errorf("update invoke req:%s error:%v", e.request, err)
 	}

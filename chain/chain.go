@@ -1,12 +1,15 @@
 package chain
 
-import "github.com/miekg/dns"
+import (
+	"github.com/miekg/dns"
+	"github.com/xsmartdns/xsmartdns/model"
+)
 
 type Chain interface {
 	// process msg
-	HandleRequest(r *dns.Msg, nextChain HandleInvoke) (*dns.Msg, error)
+	HandleRequest(r *model.Message, nextChain HandleInvoke) (*dns.Msg, error)
 	// Shutdown
 	Shutdown()
 }
 
-type HandleInvoke func(*dns.Msg) (*dns.Msg, error)
+type HandleInvoke func(*model.Message) (*dns.Msg, error)

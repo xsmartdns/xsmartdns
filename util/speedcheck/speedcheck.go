@@ -16,6 +16,7 @@ import (
 	probing "github.com/prometheus-community/pro-bing"
 	"github.com/xsmartdns/xsmartdns/config"
 	"github.com/xsmartdns/xsmartdns/log"
+	"github.com/xsmartdns/xsmartdns/model"
 	"github.com/xsmartdns/xsmartdns/util"
 )
 
@@ -30,25 +31,30 @@ type sppedTestResault struct {
 }
 
 // do speed check
-func SpeedCheckSync(ctx context.Context, rr dns.RR, cfgs []*config.SpeedCheckConfig) (rtMs int64) {
-	if len(cfgs) == 0 {
+func SpeedCheckSync(ctx context.Context, msg *model.Message, rr dns.RR, cfg *config.Group) (rtMs int64) {
+	if len(cfg.SpeedChecks) == 0 {
 		return -1
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	ch := make(chan *sppedTestResault, len(cfgs))
-	timers := make([]*time.Timer, 0, len(cfgs))
-	for i, speedConfig := range cfgs {
-		ti := time.AfterFunc(time.Duration(i)*SPEED_CHECK_INTERVAL, func() {
+	ch := make(chan *sppedTestResault, len(cfg.SpeedChecks))
+	timers := make([]*time.Timer, 0, len(cfg.SpeedChecks))
+	for i, speedConfig := range cfg.SpeedChecks {
+		speedCheckTimes := msg.InvokeConfig.SpeedCheckTimes
+		speedCheckInterval := SPEED_CHECK_INTERVAL
+		if speedCheckTimes > 1 {
+			speedCheckInterval += time.Duration(speedCheckTimes) * time.Second
+		}
+		ti := time.AfterFunc(time.Duration(i)*speedCheckInterval, func() {
 			select {
 			case <-ctx.Done():
 				return
 			default:
-				rtMs, err := speedCheckSyncOne(ctx, rr, speedConfig)
+				rtMs, err := speedCheckSyncWithTimes(ctx, rr, speedConfig, speedCheckTimes)
 				ch <- &sppedTestResault{rtMs: rtMs, err: err}
 				if err == nil {
-					log.Infof("speed %s:%d check:[%s] %dms", speedConfig.SpeedCheckType, speedConfig.Port, rr.String(), rtMs)
+					log.Infof("speed %s:%d check:[%s] avg %dms", speedConfig.SpeedCheckType, speedConfig.Port, rr.String(), rtMs)
 				} else {
 					log.Infof("speed %s:%d check:[%s] error:%v", speedConfig.SpeedCheckType, speedConfig.Port, rr.String(), err)
 				}
@@ -68,6 +74,39 @@ func SpeedCheckSync(ctx context.Context, rr dns.RR, cfgs []*config.SpeedCheckCon
 		}
 	}
 	return
+}
+
+func speedCheckSyncWithTimes(ctx context.Context, rr dns.RR, cfg *config.SpeedCheckConfig, times int32) (rtMsAvg int64, err error) {
+	sum := int64(0)
+	succeedOnce := false
+	for i := int32(0); i < times; i++ {
+		// sleep 1s
+		if i > 0 {
+			timer := time.NewTimer(time.Second)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return math.MaxInt64, ctx.Err()
+			case <-timer.C:
+			}
+
+		}
+
+		var rtMs int64
+		rtMs, err = speedCheckSyncOne(ctx, rr, cfg)
+		if err != nil {
+			rtMs = math.MaxInt32
+			log.Infof("speed[%d] %s:%d check:[%s] error:%v", i, cfg.SpeedCheckType, cfg.Port, rr.String(), err)
+		} else {
+			succeedOnce = true
+			log.Infof("speed[%d] %s:%d check:[%s] %dms", i, cfg.SpeedCheckType, cfg.Port, rr.String(), rtMs)
+		}
+		sum += rtMs
+	}
+	if !succeedOnce {
+		return 0, err
+	}
+	return int64(math.Ceil(float64(sum) / float64(times))), nil
 }
 
 func speedCheckSyncOne(ctx context.Context, rr dns.RR, cfg *config.SpeedCheckConfig) (rtMs int64, err error) {
@@ -93,7 +132,7 @@ func speedCheckSyncOne(ctx context.Context, rr dns.RR, cfg *config.SpeedCheckCon
 		return tcping(ctx, ip+":"+strconv.FormatInt(cfg.Port, 10))
 	}
 
-	return math.MaxInt64, fmt.Errorf("unkonw type")
+	return math.MaxInt32, fmt.Errorf("unkonw type")
 }
 
 func ping(ctx context.Context, ip string) (rtMs int64, err error) {

@@ -3,6 +3,7 @@ package outbound
 import (
 	"github.com/miekg/dns"
 	"github.com/xsmartdns/xsmartdns/config"
+	"github.com/xsmartdns/xsmartdns/model"
 )
 
 type dnsOutbound struct {
@@ -16,8 +17,8 @@ func NewDnsOutbound(cfg *config.DnsSetting) Outbound {
 	return &dnsOutbound{client: client, upstreamAddr: cfg.Addr}
 }
 
-func (o *dnsOutbound) Invoke(r *dns.Msg) (*dns.Msg, error) {
-	resp, _, err := o.client.Exchange(r, o.upstreamAddr)
+func (o *dnsOutbound) Invoke(r *model.Message) (*dns.Msg, error) {
+	resp, _, err := o.client.Exchange(r.Msg, o.upstreamAddr)
 	if err != nil {
 		return nil, err
 	}

@@ -46,6 +46,13 @@ func (c *DnsQueryCache) FindCacheResp(r *dns.Msg) *dns.Msg {
 		return nil
 	}
 
+	c.RLock()
+	if !c.cache.Contains(key) {
+		c.RUnlock()
+		return nil
+	}
+	c.RUnlock()
+
 	c.Lock()
 	defer c.Unlock()
 	if !c.cache.Contains(key) {

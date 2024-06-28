@@ -103,9 +103,7 @@ func LenLimit(data []dns.RR, limit int64) []dns.RR {
 // rewrite rr ttl
 func RewriteRRTTL(data []dns.RR, ttl uint32) {
 	for _, msg := range data {
-		if msg.Header().Ttl > ttl {
-			msg.Header().Ttl = ttl
-		}
+		msg.Header().Ttl = ttl
 	}
 }
 

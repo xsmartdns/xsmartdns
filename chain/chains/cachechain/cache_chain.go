@@ -7,6 +7,7 @@ import (
 	"github.com/xsmartdns/xsmartdns/cache"
 	"github.com/xsmartdns/xsmartdns/chain"
 	"github.com/xsmartdns/xsmartdns/config"
+	"github.com/xsmartdns/xsmartdns/model"
 	"github.com/xsmartdns/xsmartdns/util"
 )
 
@@ -24,9 +25,9 @@ func NewCacheChain(cfg *config.Group) chain.Chain {
 	return &cacheChain{cfg: cfg, cache: dc}
 }
 
-func (c *cacheChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvoke) (*dns.Msg, error) {
+func (c *cacheChain) HandleRequest(r *model.Message, nextChain chain.HandleInvoke) (*dns.Msg, error) {
 	// find cache
-	resp := c.cache.FindCacheResp(r)
+	resp := c.cache.FindCacheResp(r.Msg)
 	if resp != nil {
 		resp.Id = r.Id
 		return resp, nil
@@ -37,7 +38,7 @@ func (c *cacheChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvoke) (*d
 	if err != nil {
 		return nil, err
 	}
-	c.cache.StoreCache(r, resp)
+	c.cache.StoreCache(r.Msg, resp)
 	util.RewriteMsgTTL(resp, 3)
 	return resp, nil
 }

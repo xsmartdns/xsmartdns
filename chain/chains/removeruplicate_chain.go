@@ -4,6 +4,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/xsmartdns/xsmartdns/chain"
 	"github.com/xsmartdns/xsmartdns/config"
+	"github.com/xsmartdns/xsmartdns/model"
 	"github.com/xsmartdns/xsmartdns/util"
 )
 
@@ -15,7 +16,7 @@ func NewRemoveruplicateChain(cfg *config.Group) chain.Chain {
 	return &removeruplicateChain{cfg: cfg}
 }
 
-func (c *removeruplicateChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvoke) (*dns.Msg, error) {
+func (c *removeruplicateChain) HandleRequest(r *model.Message, nextChain chain.HandleInvoke) (*dns.Msg, error) {
 	resp, err := nextChain(r)
 	if err != nil {
 		return nil, err

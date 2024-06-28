@@ -6,6 +6,7 @@ import (
 	"github.com/xsmartdns/xsmartdns/chain/chains"
 	"github.com/xsmartdns/xsmartdns/chain/chains/cachechain"
 	"github.com/xsmartdns/xsmartdns/config"
+	"github.com/xsmartdns/xsmartdns/model"
 )
 
 // dns upstream group
@@ -28,7 +29,7 @@ func NewFastlyGroupInvoker(cfg *config.Group) GroupInvoker {
 }
 
 func (p *fastlyGroupInvoker) Invoke(r *dns.Msg) (*dns.Msg, error) {
-	return p.handleInvoke(r)
+	return p.handleInvoke(model.WrapDnsMsg(r))
 }
 
 func (p *fastlyGroupInvoker) Shutdown() {

@@ -8,6 +8,7 @@ import (
 	"github.com/xsmartdns/xsmartdns/chain"
 	"github.com/xsmartdns/xsmartdns/config"
 	"github.com/xsmartdns/xsmartdns/log"
+	"github.com/xsmartdns/xsmartdns/model"
 	"github.com/xsmartdns/xsmartdns/outbound"
 	"github.com/xsmartdns/xsmartdns/util"
 )
@@ -25,7 +26,7 @@ func NewInvokeOutboundChain(cfg *config.Group) chain.Chain {
 	return &invokeOutboundChain{cfg: cfg, outbounds: outbounds}
 }
 
-func (c *invokeOutboundChain) HandleRequest(r *dns.Msg, nextChain chain.HandleInvoke) (*dns.Msg, error) {
+func (c *invokeOutboundChain) HandleRequest(r *model.Message, nextChain chain.HandleInvoke) (*dns.Msg, error) {
 	wg := sync.WaitGroup{}
 	ch := make(chan *invokeResp, len(c.outbounds))
 	for i, o := range c.outbounds {
