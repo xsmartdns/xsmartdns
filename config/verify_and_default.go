@@ -95,6 +95,9 @@ func (c *Group) FillDefault() {
 			// &SpeedCheckConfig{SpeedCheckType: UDP_SPEED_CHECK_TYPE, Port: 443},
 		)
 	}
+	if c.DualstackIpSelectionThreshold == nil {
+		c.DualstackIpSelectionThreshold = &DEFAULT_DUALSTACK_IP_SELECTION_THRESHOLD
+	}
 }
 func (c *Group) Verify() error {
 	if len(c.Outbounds) == 0 {
@@ -176,32 +179,18 @@ func (c *Outbound) Verify() error {
 // CacheConfig
 func (c *CacheConfig) FillDefault() {
 	if c.CacheSize == nil {
-		tmp := int32(10240)
 		// TODO: auto size
-		c.CacheSize = &tmp
-	}
-	if c.PrefetchDomain == nil {
-		tmp := false
-		c.PrefetchDomain = &tmp
-	}
-	if c.CacheExpired == nil {
-		tmp := true
-		c.CacheExpired = &tmp
-	}
-	if c.CacheExpiredTimeout == nil {
-		tmp := int64(0)
-		c.CacheExpiredTimeout = &tmp
+		c.CacheSize = &DEFAULT_CACHE_SIZE
 	}
 	if c.CacheExpiredReplyTtl == nil {
-		tmp := int64(5)
-		if *c.PrefetchDomain {
-			tmp = 15
+		tmp := DEFAULT_CACHEEXPIRED_REPLY_TTL
+		if c.MultiPrefetchSpeedCheck {
+			tmp = DEFAULT_CACHEEXPIRED_REPLY_TTL_MULTIPREFETCHSPEEDCHECK
 		}
 		c.CacheExpiredReplyTtl = &tmp
 	}
 	if c.CacheExpiredPrefetchTimeSecond == nil {
-		tmp := int64(28800)
-		c.CacheExpiredPrefetchTimeSecond = &tmp
+		c.CacheExpiredPrefetchTimeSecond = &DEFAULT_CACHEEXPIRED_PREFETCH_TIMESECOND
 	}
 }
 

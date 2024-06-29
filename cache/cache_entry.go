@@ -58,7 +58,7 @@ func newCacheEntry(request, resp *dns.Msg, updateinvoke *updateinvoke.UpdateInvo
 		vistiedTimeSecond: now,
 		updateinvoke:      updateinvoke,
 	}
-	if *cfg.PrefetchDomain {
+	if cfg.PrefetchDomain {
 		e.startUpdate(func() time.Duration {
 			e.RLock()
 			ttl := e.ttl
@@ -66,7 +66,7 @@ func newCacheEntry(request, resp *dns.Msg, updateinvoke *updateinvoke.UpdateInvo
 			afterUpdateTime := (time.Duration(ttl) - MIN_UPDATE_DELAY_SECOND) * time.Second
 			return afterUpdateTime
 		})
-	} else if *cfg.CacheExpired {
+	} else if !cfg.DisableCacheExpired {
 		e.startUpdate(func() time.Duration {
 			return time.Duration(*cfg.CacheExpiredPrefetchTimeSecond) * time.Second
 		})
@@ -92,11 +92,11 @@ func (e *CacheEntry) getResp() *dns.Msg {
 		return nil
 	}
 	if e.ttlExpired() {
-		if !*e.cfg.CacheExpired {
+		if e.cfg.DisableCacheExpired {
 			return nil
 		}
 		// Accessing the expired cache returns ttl of 3
-		if !*e.cfg.PrefetchDomain {
+		if !e.cfg.PrefetchDomain {
 			go e.updateResp()
 		}
 		nowTtl = *e.cfg.CacheExpiredReplyTtl
@@ -113,13 +113,13 @@ func (e *CacheEntry) ttlExpired() bool {
 }
 
 func (e *CacheEntry) vistiedExpired() bool {
-	if *e.cfg.CacheExpiredTimeout <= 0 {
+	if e.cfg.CacheExpiredTimeout <= 0 {
 		return false
 	}
 	e.RLock()
 	vistiedTimeSecond := e.vistiedTimeSecond
 	e.RUnlock()
-	return timeutil.NowSecond()-vistiedTimeSecond > int64(*e.cfg.CacheExpiredTimeout)
+	return timeutil.NowSecond()-vistiedTimeSecond > e.cfg.CacheExpiredTimeout
 }
 
 func (e *CacheEntry) clear() {
@@ -129,6 +129,9 @@ func (e *CacheEntry) clear() {
 	e.RUnlock()
 	if ti != nil {
 		ti.Stop()
+	}
+	if log.IsLevelEnabled(logrus.DebugLevel) {
+		log.Debuf("[%s]cleaned", e.host)
 	}
 }
 
@@ -167,8 +170,8 @@ func (e *CacheEntry) updateResp() error {
 	defer atomic.StoreInt32(&e.updating, 0)
 
 	req := model.WrapDnsMsg(e.request)
-	// not first update
-	if e.storeTimeSecond != e.updateTimeSecond {
+	// not first update and multiPrefetchSpeedCheck enabled
+	if e.cfg.MultiPrefetchSpeedCheck && e.storeTimeSecond != e.updateTimeSecond {
 		req.InvokeConfig.SpeedCheckTimes = CACHE_SPEED_CHECK_TIMES
 	}
 	resp, err := e.updateinvoke.Invoke(req)

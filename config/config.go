@@ -37,7 +37,10 @@ type Group struct {
 	MaxIpsNumber *int64 `json:"maxIpsNumber"`
 	// cache config
 	CacheConfig *CacheConfig `json:"cache"`
-	// fisrt response order / rt test response
+	// Dualstack ip selection
+	DisableDualstackIpSelection bool `json:"disableDualstackIpSelection"`
+	// Dualstack ip select thresholds(ms), default is 10ms
+	DualstackIpSelectionThreshold *int64 `json:"dualstackIpSelectionThreshold"`
 }
 
 type SpeedCheckConfig struct {
@@ -48,12 +51,14 @@ type SpeedCheckConfig struct {
 type CacheConfig struct {
 	CacheSize *int32 `json:"cacheSize"`
 	// domain prefetch feature default false
-	PrefetchDomain *bool `json:"prefetchDomain"`
-	// cache expired feature, default true
-	CacheExpired *bool `json:"cacheExpired"`
+	PrefetchDomain bool `json:"prefetchDomain"`
+	// multi speed test when cache prefetchDomain
+	MultiPrefetchSpeedCheck bool `json:"multiPrefetchSpeedCheck"`
+	// cache expired feature, default false
+	DisableCacheExpired bool `json:"disableCacheExpired"`
 	// Cache expired timeout , default 0 no timeout
-	CacheExpiredTimeout *int64 `json:"cacheExpiredTimeout"`
-	// TTL value to use when replying with expired data, default 5(15 when prefetchDomain enabled)
+	CacheExpiredTimeout int64 `json:"cacheExpiredTimeout"`
+	// TTL value to use when replying with expired data, default 5(15 when multiPrefetchSpeedCheck enabled)
 	CacheExpiredReplyTtl *int64 `json:"cacheExpiredReplyTtl"`
 	// Prefetch time when serve expired, default 28800
 	CacheExpiredPrefetchTimeSecond *int64 `json:"cacheExpiredPrefetchTimeSecond"`

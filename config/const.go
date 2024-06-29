@@ -6,6 +6,14 @@ const (
 	DEFAULT_PROTOCOL = DNS_PROTOCOL
 )
 
+var (
+	DEFAULT_CACHE_SIZE                                     = int32(10240)
+	DEFAULT_CACHEEXPIRED_REPLY_TTL                         = int64(5)
+	DEFAULT_CACHEEXPIRED_REPLY_TTL_MULTIPREFETCHSPEEDCHECK = int64(15)
+	DEFAULT_CACHEEXPIRED_PREFETCH_TIMESECOND               = int64(28800)
+	DEFAULT_DUALSTACK_IP_SELECTION_THRESHOLD               = int64(10)
+)
+
 type Protocol string
 
 const (
