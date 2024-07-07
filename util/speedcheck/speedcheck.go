@@ -118,7 +118,7 @@ func speedCheckSyncOne(ctx context.Context, rr dns.RR, cfg *config.SpeedCheckCon
 	case dns.TypeA:
 		ip = rr.(*dns.A).A.String()
 	case dns.TypeAAAA:
-		ip = rr.(*dns.AAAA).String()
+		ip = rr.(*dns.AAAA).AAAA.String()
 	default:
 		return 0, fmt.Errorf("fail ip type:%s to speed check", dns.Type(rr.Header().Rrtype).String())
 	}
